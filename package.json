@@ -1,0 +1,24 @@
+{
+  "name": "dev-o-mon",
+  "version": "1.0.0",
+  "description": "A tool to monitor ad-hoc data streams and values",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "launch": "node ./dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mahesh Balakrishnan",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "nodestalker": "^0.1.21",
+    "typescript": "^3.3.3333",
+    "ws": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.16.1",
+    "@types/ws": "^6.0.1",
+    "@types/node": "^11.11.3"
+  }
+}
