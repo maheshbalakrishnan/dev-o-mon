@@ -1,12 +1,14 @@
 import MonitorPlugin from "./plugins/MonitorPlugin";
 import BeanstalkMonitor from "./plugins/BeanstalkMonitorPlugin";
 import Common from "./utils/Common";
+import Observer from "./Observer";
+import { EventEmitter } from "events";
 
 /**
  * Singleton class to watch and aggregate all the plugin
  * data and publishes them
  */
-class Service {
+class Service extends EventEmitter {
 
     /** All plugins that the service has to monitor */
     plugins: Array<MonitorPlugin> = [];
@@ -17,74 +19,59 @@ class Service {
     /** control variable for this service */
     private _serviceState : string = "stop";
 
-    private _onDataCallback : Function = function(data : any) {
-        console.log(data);
-    };
-
     /** Default update duration of the service */
-    private static UPDATE_DURATION_MS = 1000; 
+    private _updateDurationMs : number = 1000;
 
-    private _updateDuration : number = Service.UPDATE_DURATION_MS;
+    /** List of registered observers for this service */
+    private _observers : Array<Observer> = [];
 
     /**
      * Gets the singleton instance of the service
      */
-    constructor(updateDuration: number, onDataCallback: Function | null) {
-        
+    constructor(updateDuration: number) {
+        super()
         if(updateDuration > 0) {
-            this._updateDuration = updateDuration;
+            this._updateDurationMs = updateDuration;
         }
+    }
 
-        if(onDataCallback !== null) {
-            this._onDataCallback = onDataCallback;
-        }
+    /**
+     * Registers an oberver for this service
+     * @param observer The observer object to be registered 
+     */
+    registerObserver(observer : Observer) : void {
+        this._observers.push(observer);
     }
 
     /**
      * Initialize service
      */
-    init() : boolean {
-        
-        var result = true;
-        
+    init() : void {
         /** instantiate the plugins */
         this.plugins.push(
             new BeanstalkMonitor()
         );
-
         /** initialize the plugins */
         this.plugins.forEach( plugin => plugin.init());
-
         this._serviceState = "run";
-
-        return result;
-
     }
 
     /**
      * start processing
      */
     start() : void {
-
         do {
-            
             var result : Array<any> = this.plugins.map((plugin) => plugin.publish());
-
-            this._onDataCallback(result);
-
-            Common.sleep(this._updateDuration);
-        
+            this._observers.forEach(observer => observer.onDataHandler!(result, observer.context))
+            Common.sleep(this._updateDurationMs);
         } while(this._serviceState === "run");
-
     }
 
     /**
      * stop processing
      */
     stop() : void {
-
         this._serviceState = "stop";
-    
     }
 }
 
