@@ -13,42 +13,49 @@ const server = http.createServer(app);
 //initialize the WebSocket server instance
 const wss = new WebSocket.Server({ server });
 
-var _service : Service | null = null;
+var _service : Service | null = new Service(1000);
+_service!.init();
+_service!.start();
 
-wss.on('connection', (ws: WebSocket) => {
+function getClientName(req: http.IncomingMessage) : string {
+    return "ip_" + req.connection.remoteAddress + "_p_" + req.connection.remotePort; 
+}
+
+
+wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
 
     var serviceContext : any = {
         ws: ws
     };
 
-    _service = new Service(1000) 
-    
-    _service.registerObserver(new Observer("websocket", 
+    var clientName = getClientName(req);
+
+    _service!.registerObserver(new Observer(clientName, 
             serviceContext, 
             function(data : any, context: any) { 
-                context.ws.send(data);
+                context.ws.send(JSON.stringify(data));
     }));
     
     //connection is up, let's add a simple simple event
     ws.on('message', (message: string) => {
-
-        //log the received message and send it back to the client
-        console.log('received: %s', message);
         
-        ws.send(`Hello, you sent -> ${message}`);
+        ws.send(`you: ${message}. Server: Shut up!`);
+
+    });
+
+    ws.on('close', () => {
+
+        //remove the observer from the service
+        _service!.removeObserver(clientName);
+
     });
 
     //send immediatly a feedback to the incoming connection    
-    ws.send('Hi there, I am a WebSocket server');
-
-    _service!.init();
-
-    _service!.start();
-
+    ws.send('You are now connected!');
 });
 
 
 //start our server
 server.listen(port, () => {
-    console.log(`Server started on port ${port} =)`);
+    console.log(`Websocket listening on ${port} =)`);
 });

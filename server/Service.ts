@@ -8,7 +8,7 @@ import { EventEmitter } from "events";
  * Singleton class to watch and aggregate all the plugin
  * data and publishes them
  */
-class Service extends EventEmitter {
+class Service {
 
     /** All plugins that the service has to monitor */
     plugins: Array<MonitorPlugin> = [];
@@ -29,7 +29,6 @@ class Service extends EventEmitter {
      * Gets the singleton instance of the service
      */
     constructor(updateDuration: number) {
-        super()
         if(updateDuration > 0) {
             this._updateDurationMs = updateDuration;
         }
@@ -41,6 +40,18 @@ class Service extends EventEmitter {
      */
     registerObserver(observer : Observer) : void {
         this._observers.push(observer);
+        console.log(`[${this._observers.length}]+ ${observer.name}`);
+    }
+
+    /**
+     * Removes an observer from the list
+     * @param observer The observer object to be registered 
+     */
+    removeObserver(observerName : string) : void {
+        this._observers = this._observers.filter(function(value, index, arr) {
+            return value.name != observerName;
+        }); 
+        console.log(`[${this._observers.length}]- ${observerName}`);
     }
 
     /**
@@ -60,11 +71,10 @@ class Service extends EventEmitter {
      * start processing
      */
     start() : void {
-        do {
+        setInterval(() => { 
             var result : Array<any> = this.plugins.map((plugin) => plugin.publish());
-            this._observers.forEach(observer => observer.onDataHandler!(result, observer.context))
-            Common.sleep(this._updateDurationMs);
-        } while(this._serviceState === "run");
+            this._observers.forEach(observer => observer.onDataHandler!(result, observer.context));
+        }, this._updateDurationMs);
     }
 
     /**
